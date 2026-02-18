@@ -198,13 +198,109 @@ AI/NLP: valfri modell eller regelbaserat
 
 ---
 
-# 11. Rekommenderad byggordning
+# 11. Byggordning
 
-## Steg 1 – Use cases
-Lista alla frågor systemet ska kunna svara på.
+## Steg 1 – Use cases ✔
+Visa tillgänglighet kommande veckor
+Visa belastning per person
+Ge enkel prognos framåt
+Visa projektstatus
+Svara på frågor om teamets arbete
+Hämta information från integrerade system
+Ta hänsyn till semester/ledighet
+Möjlighet att boka eller föreslå mötestider.
 
 ## Steg 2 – Databehov
-Identifiera vilken data som krävs.
+
+För att systemet ska kunna analysera arbetsbelastning, göra prognoser och fungera som en intern AI-assistent krävs följande data.
+
+### Användare
+- namn  
+- unikt ID  
+- koppling mellan system (Jira, SharePoint, Slack, Git)
+
+Denna information krävs för att kunna koppla samma person mellan flera system och möjliggöra individbaserade frågor och analyser.
+
+Källa:  
+Jira, SharePoint, Slack och Git  
+
+Data lagras även i intern databas för att möjliggöra koppling mellan systemen.
+
+---
+
+### Tidrapportering
+- rapporterade timmar per person  
+- projekt kopplade till arbetstid  
+- datum och veckor  
+- historik över tid  
+
+Tidrapportering används för att analysera faktisk arbetstid, beräkna snittbelastning och skapa prognoser.
+
+Källa:  
+Jira / Tempo  
+
+Data lagras i intern databas för analys och historik.
+
+---
+
+### Kapacitet
+- arbetstid per vecka per person (heltid/deltid)
+
+Kapacitet beskriver hur mycket en person normalt kan arbeta och används för att beräkna tillgänglighet och arbetsbelastning.
+
+Källa:  
+Jira/Tempo (om tillgängligt)  
+Annars lagras kapacitet i intern databas.
+
+---
+
+### Frånvaro
+- semester  
+- ledighet  
+- sjukfrånvaro  
+
+Frånvaro används för att justera tillgänglig kapacitet och skapa mer tillförlitliga prognoser.
+
+Källa:  
+SharePoint och/eller kalender  
+
+Lagring sker i intern databas för prognosberäkningar.
+
+---
+
+### Projekt
+- aktiva projekt  
+- start- och slutdatum  
+- tilldelade personer  
+
+Projektdata används för att förstå arbetsfördelning, resursbelastning och för att kunna svara på frågor om projektstatus.
+
+Källa:  
+Jira  
+
+---
+
+### Prognosdata
+- snittarbete senaste veckor  
+- beräknad framtida arbetsbelastning  
+- uppskattad tillgänglig tid  
+
+Denna data genereras av systemet baserat på historik, kapacitet och frånvaro och används för att stödja planering och beslutsfattande.
+
+Källa:  
+Beräknas och lagras i intern databas.
+
+---
+
+### Sammanfattning
+Varje datatyp fyller en specifik funktion i systemet:
+
+- Användardata kopplar samman system  
+- Tidrapportering visar faktisk arbetstid  
+- Kapacitet visar möjlig arbetstid  
+- Frånvaro visar otillgänglighet  
+- Projektdata visar arbetsfördelning  
+- Prognosdata möjliggör framtidsanalys  
 
 ## Steg 3 – Databasmodell
 Skapa ER-diagram.
