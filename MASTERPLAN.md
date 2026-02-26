@@ -288,8 +288,8 @@ Varje datatyp fyller en specifik funktion i systemet:
 - Projektdata visar arbetsfördelning  
 - Prognosdata möjliggör framtidsanalys  
 
-## Steg 3 – Databasmodell
-Skapa ER-diagram.
+## Steg 3 – Databasmodell ✔
+Miro Er diagram: https://miro.com/app/board/uXjVG9JffoE=/?focusWidget=3458764660567877395
 
 ## Steg 4 – Backend
 Skapa API och databas.
