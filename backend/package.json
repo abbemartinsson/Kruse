@@ -6,14 +6,23 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
+    "sync:daily": "node src/scripts/sync.js daily",
+    "sync:all": "node src/scripts/sync.js all",
+    "sync:tables": "node src/scripts/sync.js tables",
+    "sync:projects": "node src/scripts/sync.js projects",
+    "sync:users": "node src/scripts/sync.js users",
+    "sync:issues": "node src/scripts/sync.js issues",
+    "sync:issues:all": "node src/scripts/sync.js issues-all",
+    "sync:worklogs": "node src/scripts/sync.js worklogs",
     "test": "jest"
   },
   "dependencies": {
-    "dotenv": "^16.0.0",
-    "@supabase/supabase-js": "^2.0.0"
+    "@supabase/supabase-js": "^2.0.0",
+    "axios": "^1.13.6",
+    "dotenv": "^16.6.1"
   },
   "devDependencies": {
-    "nodemon": "^2.0.0",
-    "jest": "^29.0.0"
+    "jest": "^29.0.0",
+    "nodemon": "^2.0.0"
   }
 }
