@@ -1,0 +1,19 @@
+{
+  "name": "datainsamling-backend",
+  "version": "1.0.0",
+  "description": "Backend för datainsamling från Jira och Tempo",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.0",
+    "@supabase/supabase-js": "^2.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.0",
+    "jest": "^29.0.0"
+  }
+}

@@ -1,3 +1,7 @@
 /.github
 .env
 
+# ignore backend dependencies and local config
+backend/node_modules/
+backend/src/config/.env
+
