@@ -17,21 +17,24 @@ async function upsertWorklogs(worklogs) {
   let missingUserCount = 0;
   let missingTimeCount = 0;
   let missingStartedAtCount = 0;
+  let missingTempoIdCount = 0;
 
   for (const worklog of worklogs) {
     const jiraIssueId = getJiraIssueId(worklog);
+    const jiraTempoId = getTempoWorklogId(worklog);
     const issueId = issueMap.get(jiraIssueId);
     const jiraAccountId = getJiraAccountId(worklog);
     const userId = userMap.get(jiraAccountId);
-    const startedAt = getStartedAt(worklog);
+    const startedAt = normalizeTimestamp(getStartedAt(worklog));
     const timeSpentSeconds = worklog.timeSpentSeconds || null;
 
     const missingIssue = !issueId;
     const missingUser = !userId;
     const missingStartedAt = !startedAt;
     const missingTime = !timeSpentSeconds;
+    const missingTempoId = !jiraTempoId;
 
-    if (missingIssue || missingUser || missingStartedAt || missingTime) {
+    if (missingIssue || missingUser || missingStartedAt || missingTime || missingTempoId) {
       skippedCount++;
       if (missingIssue) {
         missingIssueCount++;
@@ -45,10 +48,14 @@ async function upsertWorklogs(worklogs) {
       if (missingTime) {
         missingTimeCount++;
       }
+      if (missingTempoId) {
+        missingTempoIdCount++;
+      }
       continue;
     }
 
     rows.push({
+      jira_tempo_id: jiraTempoId,
       issue_id: issueId,
       user_id: userId,
       time_spent_seconds: timeSpentSeconds,
@@ -64,18 +71,21 @@ async function upsertWorklogs(worklogs) {
     console.warn(`    Missing user mapping: ${missingUserCount}`);
     console.warn(`    Missing started_at: ${missingStartedAtCount}`);
     console.warn(`    Missing time_spent_seconds: ${missingTimeCount}`);
+    console.warn(`    Missing jira_tempo_id: ${missingTempoIdCount}`);
   }
 
-  if (rows.length === 0) {
+  const deduplicatedRows = dedupeRowsByTempoId(rows);
+
+  if (deduplicatedRows.length === 0) {
     return [];
   }
 
   const { data, error } = await supabase
     .from(TABLE)
-    .upsert(rows, { onConflict: 'issue_id,user_id,started_at' });
+    .upsert(deduplicatedRows, { onConflict: 'jira_tempo_id' });
 
   if (!error) {
-    return data || rows;
+    return data || deduplicatedRows;
   }
 
   // Fallback for environments where the composite unique constraint does not exist.
@@ -88,13 +98,12 @@ async function upsertWorklogs(worklogs) {
   }
 
   console.warn('    Missing unique constraint for upsert, using deduplicated insert fallback');
-  const existingKeys = await buildExistingWorklogKeySet();
-  const rowsToInsert = rows.filter(row => {
-    const key = buildWorklogKey(row.issue_id, row.user_id, row.started_at);
-    if (existingKeys.has(key)) {
+  const existingTempoIds = await buildExistingTempoIdSet();
+  const rowsToInsert = deduplicatedRows.filter(row => {
+    if (existingTempoIds.has(row.jira_tempo_id)) {
       return false;
     }
-    existingKeys.add(key);
+    existingTempoIds.add(row.jira_tempo_id);
     return true;
   });
 
@@ -116,6 +125,16 @@ function getJiraIssueId(worklog) {
   }
   if (worklog.issueId) {
     return String(worklog.issueId);
+  }
+  return null;
+}
+
+function getTempoWorklogId(worklog) {
+  if (worklog.tempoWorklogId) {
+    return String(worklog.tempoWorklogId);
+  }
+  if (worklog.id) {
+    return String(worklog.id);
   }
   return null;
 }
@@ -144,6 +163,19 @@ function getStartedAt(worklog) {
     return `${worklog.startDate}T00:00:00Z`;
   }
   return null;
+}
+
+function normalizeTimestamp(value) {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return parsed.toISOString();
 }
 
 async function buildIssueLookupMap() {
@@ -191,19 +223,38 @@ async function fetchAllRows(table, columns) {
   return rows;
 }
 
-async function buildExistingWorklogKeySet() {
-  const existingRows = await fetchAllRows(TABLE, 'issue_id, user_id, started_at');
+async function buildExistingTempoIdSet() {
+  const existingRows = await fetchAllRows(TABLE, 'jira_tempo_id');
   const set = new Set();
 
   for (const row of existingRows) {
-    set.add(buildWorklogKey(row.issue_id, row.user_id, row.started_at));
+    if (row.jira_tempo_id) {
+      set.add(String(row.jira_tempo_id));
+    }
   }
 
   return set;
 }
 
 function buildWorklogKey(issueId, userId, startedAt) {
-  return `${issueId}|${userId}|${startedAt}`;
+  return `${issueId}|${userId}|${normalizeTimestamp(startedAt)}`;
+}
+
+function dedupeRowsByTempoId(rows) {
+  const uniqueRows = [];
+  const seenTempoIds = new Set();
+
+  for (const row of rows) {
+    const tempoId = String(row.jira_tempo_id);
+    if (seenTempoIds.has(tempoId)) {
+      continue;
+    }
+
+    seenTempoIds.add(tempoId);
+    uniqueRows.push(row);
+  }
+
+  return uniqueRows;
 }
 
 module.exports = {

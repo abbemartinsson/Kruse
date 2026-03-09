@@ -15,7 +15,7 @@ async function upsertProjects(projects) {
     name: p.name,
     created_at: now,
     updated_at: now,
-    // start_date, end_date handled separately later
+    // start_date, last_logged_issue calculated from worklogs
   }));
   const { data, error } = await supabase
     .from(TABLE)
@@ -29,6 +29,97 @@ async function upsertProjects(projects) {
   return data || rows;
 }
 
+async function updateProjectTimestamps() {
+  // Fetch all projects
+  const { data: projects, error: projectsError } = await supabase
+    .from(TABLE)
+    .select('id, jira_project_key');
+
+  if (projectsError) {
+    throw projectsError;
+  }
+
+  if (!projects || projects.length === 0) {
+    return 0;
+  }
+
+  let updatedCount = 0;
+
+  for (const project of projects) {
+    // Get all issue IDs for this project
+    const { data: issues, error: issuesError } = await supabase
+      .from('ISSUES')
+      .select('id')
+      .eq('project_id', project.id);
+
+    if (issuesError) {
+      console.warn(`    ⚠ Error fetching issues for project ${project.jira_project_key}:`, issuesError.message);
+      continue;
+    }
+
+    if (!issues || issues.length === 0) {
+      continue;
+    }
+
+    const issueIds = issues.map(i => i.id);
+
+    // Get earliest (MIN) started_at from worklogs for these issues
+    const { data: earliestWorklog, error: earliestError } = await supabase
+      .from('WORKLOGS')
+      .select('started_at')
+      .in('issue_id', issueIds)
+      .order('started_at', { ascending: true })
+      .limit(1)
+      .single();
+
+    if (earliestError && earliestError.code !== 'PGRST116') {
+      console.warn(`    ⚠ Error fetching earliest worklog for project ${project.jira_project_key}:`, earliestError.message);
+      continue;
+    }
+
+    // Get latest (MAX) started_at from worklogs for these issues
+    const { data: latestWorklog, error: latestError } = await supabase
+      .from('WORKLOGS')
+      .select('started_at')
+      .in('issue_id', issueIds)
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (latestError && latestError.code !== 'PGRST116') {
+      console.warn(`    ⚠ Error fetching latest worklog for project ${project.jira_project_key}:`, latestError.message);
+      continue;
+    }
+
+    if (!earliestWorklog || !latestWorklog) {
+      continue;
+    }
+
+    const startDate = earliestWorklog.started_at;
+    const lastLoggedIssue = latestWorklog.started_at;
+
+    // Update project with calculated timestamps
+    const { error: updateError } = await supabase
+      .from(TABLE)
+      .update({
+        start_date: startDate,
+        last_logged_issue: lastLoggedIssue,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', project.id);
+
+    if (updateError) {
+      console.warn(`    ⚠ Error updating timestamps for project ${project.jira_project_key}:`, updateError.message);
+      continue;
+    }
+
+    updatedCount++;
+  }
+
+  return updatedCount;
+}
+
 module.exports = {
   upsertProjects,
+  updateProjectTimestamps,
 };

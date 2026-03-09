@@ -1,4 +1,4 @@
-const { syncProjects } = require('./projectService');
+const { syncProjects, updateProjectTimestamps } = require('./projectService');
 const { syncUsers } = require('./userService');
 const { syncIssues, syncIssuesAllStatuses } = require('./issueService');
 const { syncWorklogs } = require('./worklogService');
@@ -26,6 +26,10 @@ async function syncAll() {
   const worklogsResult = await syncWorklogs();
   console.log(`    ✓ Synced ${worklogsResult ? worklogsResult.length : 0} worklogs`);
 
+  console.log('  → Updating project timestamps...');
+  const timestampsUpdated = await updateProjectTimestamps();
+  console.log(`    ✓ Updated timestamps for ${timestampsUpdated} projects`);
+
   console.log('Full sync completed!');
 }
 
@@ -44,6 +48,10 @@ async function syncDaily() {
   console.log('  → Syncing worklogs...');
   const worklogsResult = await syncWorklogs();
   console.log(`    ✓ Synced ${worklogsResult ? worklogsResult.length : 0} worklogs`);
+
+  console.log('  → Updating project timestamps...');
+  const timestampsUpdated = await updateProjectTimestamps();
+  console.log(`    ✓ Updated timestamps for ${timestampsUpdated} projects`);
 
   console.log('Daily sync completed!');
 }
@@ -102,6 +110,16 @@ async function syncIssuesAllStatusesOnly() {
   console.log('Issues-all-statuses sync completed!');
 }
 
+async function updateProjectTimestampsOnly() {
+  console.log('Starting project timestamps update...');
+
+  console.log('  → Updating project timestamps...');
+  const timestampsUpdated = await updateProjectTimestamps();
+  console.log(`    ✓ Updated timestamps for ${timestampsUpdated} projects`);
+
+  console.log('Project timestamps update completed!');
+}
+
 module.exports = {
   syncAll,
   syncDaily,
@@ -110,4 +128,5 @@ module.exports = {
   syncUsersOnly,
   syncIssuesOnly,
   syncIssuesAllStatusesOnly,
+  updateProjectTimestampsOnly,
 };

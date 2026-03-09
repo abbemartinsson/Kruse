@@ -122,16 +122,19 @@ projects
 
 Representerar projekt från Jira.
 
-| Kolumn           | Typ         |
-| ---------------- | ----------- |
-| id               | int8        |
-| name             | text        |
-| start_date       | timestamp   |
-| end_date         | timestamp   |
-| jira_project_id  | int8        |
-| jira_project_key | text        |
-| created_at       | timestamptz |
-| updated_at       | timestamptz |
+| Kolumn           | Typ         | Beskrivning                                                    |
+| ---------------- | ----------- | -------------------------------------------------------------- |
+| id               | int8        | Internt databas-ID                                             |
+| name             | text        | Projektnamn                                                    |
+| start_date       | timestamptz | Första worklog för projektet (tidigaste started_at)            |
+| jira_project_id  | int8        | Jira projekt-ID                                                |
+| jira_project_key | text        | Jira projektnyckel                                             |
+| created_at       | timestamptz | När posten skapades i databasen                                |
+| updated_at       | timestamptz | När posten senast uppdaterades                                 |
+| last_logged_issue| timestamptz | Senaste worklog för projektet (senaste started_at från någon issue) |
+
+**Automatisk beräkning:**  
+`start_date` och `last_logged_issue` beräknas automatiskt från worklogs vid sync.
 
 ---
 

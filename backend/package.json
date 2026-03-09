@@ -14,6 +14,10 @@
     "sync:issues": "node src/scripts/sync.js issues",
     "sync:issues:all": "node src/scripts/sync.js issues-all",
     "sync:worklogs": "node src/scripts/sync.js worklogs",
+    "sync:timestamps": "node src/scripts/sync.js timestamps",
+    "reporting": "node src/scripts/reporting.js",
+    "report:get-project-info": "node src/scripts/reporting.js get-project-info",
+    "report:search-projects": "node src/scripts/reporting.js search-projects",
     "test": "jest"
   },
   "dependencies": {

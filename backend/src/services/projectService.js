@@ -10,6 +10,12 @@ async function syncProjects() {
   return saved;
 }
 
+async function updateProjectTimestamps() {
+  const updatedCount = await projectRepo.updateProjectTimestamps();
+  return updatedCount;
+}
+
 module.exports = {
   syncProjects,
+  updateProjectTimestamps,
 };
