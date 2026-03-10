@@ -53,7 +53,6 @@ async function main() {
       }
 
       console.log(`Generating ${months}-month workload forecast...`);
-      console.log('This may take a moment...\n');
 
       const forecast = await reportingService.getWorkloadForecast(months);
 
