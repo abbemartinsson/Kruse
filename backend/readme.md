@@ -127,6 +127,179 @@ No project found for key: HULTP
 
 ---
 
+#### 3. Arbetsbelastningsprognos (ML)
+
+Generera ML-baserad prognos för framtida arbetsbelastning med Prophet time series modell.
+
+**Kommando:**
+```bash
+npm run report:workload-forecast -- [MÅNADER]
+```
+
+**Exempel:**
+```bash
+npm run report:workload-forecast -- 3
+npm run report:workload-forecast -- 6
+```
+
+**Output:**
+- Veckovisa och månadsvisa prognoser med konfidensintervall
+- Historisk jämförelse (samma period tidigare år)
+- Nuvarande trender och statistik
+- Antal aktiva användare per period
+
+**Fördelar:**
+- Visa om arbetsbelastning förväntas öka/minska
+- Planera rekrytering baserat på prognoser
+- Upptäck säsongsmönster i arbetsbelastning
+
+---
+
+#### 4. Prognossammanfattning
+
+Få en förenklad sammanfattning av arbetsbelastningsprognosen.
+
+**Kommando:**
+```bash
+npm run report:forecast-summary -- [MÅNADER]
+```
+
+**Exempel:**
+```bash
+npm run report:forecast-summary -- 3
+```
+
+**Output:**
+```json
+{
+  "summary": {
+    "forecast_period": "Next 3 months",
+    "current_trend": "increasing",
+    "last_4_weeks_hours": 320.5,
+    "current_active_users": 12
+  },
+  "monthly_predictions": [
+    {
+      "month": "2026-04",
+      "predicted_hours": 350,
+      "range": "310 - 390 hours",
+      "confidence": "medium"
+    }
+  ]
+}
+```
+
+---
+
+#### 5. Historisk jämförelse
+
+Jämför aktuell månad med samma månad tidigare år (year-over-year).
+
+**Kommando:**
+```bash
+npm run report:historical -- [MÅNAD] [ÅR] [ANTAL_ÅR_TILLBAKA]
+```
+
+**Exempel:**
+```bash
+# Jämför nuvarande månad med tidigare år
+npm run report:historical
+
+# Jämför mars 2026 med tidigare 3 år
+npm run report:historical -- 3 2026 3
+
+# Jämför december 2025 med tidigare 2 år
+npm run report:historical -- 12 2025 2
+```
+
+**Output:**
+```json
+{
+  "current_period": {
+    "year": 2026,
+    "month": 3,
+    "total_hours": 420.5,
+    "active_users": 12,
+    "worklog_count": 156
+  },
+  "previous_years": [
+    {
+      "year": 2025,
+      "total_hours": 380.2,
+      "active_users": 10,
+      "compared_to_current": {
+        "hours_difference": 40.3,
+        "hours_change_percent": 10.6,
+        "users_difference": 2
+      }
+    }
+  ],
+  "summary": {
+    "trend": "increasing",
+    "average_hours_across_years": 395.8
+  }
+}
+```
+
+**Användningsområden:**
+- Identifiera tillväxt eller minskning över tid
+- Se hur teamstorlek har förändrats
+- Upptäck säsongsmönster år-över-år
+
+---
+
+#### 6. Arbetsbelastningsanalys
+
+Få detaljerad analys av arbetsbelastning för en specifik period.
+
+**Kommando:**
+```bash
+npm run report:analytics -- [ANTAL_MÅNADER_TILLBAKA]
+```
+
+**Exempel:**
+```bash
+# Analysera senaste 6 månaderna (default)
+npm run report:analytics
+
+# Analysera senaste 12 månaderna
+npm run report:analytics -- 12
+```
+
+**Output:**
+```json
+{
+  "summary": {
+    "total_hours": 2450.5,
+    "total_worklogs": 1240,
+    "unique_users": 15,
+    "average_weekly_hours": 95.2,
+    "average_hours_per_user": 163.4
+  },
+  "weekly_breakdown": [...],
+  "monthly_breakdown": [...]
+}
+```
+
+---
+
+## Python ML Setup
+
+För att använda prognosfunktionerna behöver du installera Python-dependencies:
+
+```bash
+cd python
+pip install -r requirements.txt
+```
+
+**Requirements:**
+- Python 3.8+
+- pandas, numpy, scikit-learn, prophet
+
+Se [python/README.md](python/README.md) för mer information.
+
+---
+
 ## Arbetsflöde
 
 **Typiskt användningsscenario:**
@@ -165,7 +338,11 @@ src/
 
 ## Framtida funktioner
 
-- Genomsnittlig projekttid
-- Prognos för nya projekt baserat på historik
+- ✅ ML-baserade arbetsbelastningsprognoser
+- ✅ Historiska jämförelser (year-over-year)
+- ✅ Arbetsbelastningsanalys med trender
+- Projektspecifika prognoser per project key
+- Automatiska varningsmeddelanden vid överbelastning
 - Slack-bot för att köra kommandon direkt i Slack
-- Fler analysverktyg
+- Dashboard för visualisering av prognoser
+- Avancerade ML-modeller (ARIMA, ensemble methods)

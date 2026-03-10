@@ -18,6 +18,10 @@
     "reporting": "node src/scripts/reporting.js",
     "report:get-project-info": "node src/scripts/reporting.js get-project-info",
     "report:search-projects": "node src/scripts/reporting.js search-projects",
+    "report:workload-forecast": "node src/scripts/reporting.js workload-forecast",
+    "report:forecast-summary": "node src/scripts/reporting.js workload-forecast-summary",
+    "report:historical": "node src/scripts/reporting.js historical-comparison",
+    "report:analytics": "node src/scripts/reporting.js workload-analytics",
     "test": "jest"
   },
   "dependencies": {

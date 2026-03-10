@@ -10,7 +10,7 @@ async function main() {
       const projectKey = process.argv[3];
 
       if (!projectKey) {
-        console.error('Missing project key. Usage: node src/scripts/reporting.js get-project-info <PROJECT_KEY>');
+        console.error('Missing project key. Usage: npm run report:get-project-info <PROJECT_KEY>');
         process.exit(1);
       }
 
@@ -29,7 +29,7 @@ async function main() {
       const query = process.argv[3];
 
       if (!query) {
-        console.error('Missing search query. Usage: node src/scripts/reporting.js search-projects <QUERY>');
+        console.error('Missing search query. Usage: npm run report:search-projects <QUERY>');
         process.exit(1);
       }
 
@@ -44,10 +44,94 @@ async function main() {
       process.exit(0);
     }
 
-    console.error('Unknown command. Supported commands: get-project-info, search-projects');
+    if (command === 'workload-forecast') {
+      const months = parseInt(process.argv[3]) || 3;
+
+      if (months < 1 || months > 12) {
+        console.error('Invalid months value. Must be between 1 and 12.');
+        process.exit(1);
+      }
+
+      console.log(`Generating ${months}-month workload forecast...`);
+      console.log('This may take a moment...\n');
+
+      const forecast = await reportingService.getWorkloadForecast(months);
+
+      console.log('=== WORKLOAD FORECAST ===\n');
+      console.log(JSON.stringify(forecast, null, 2));
+      process.exit(0);
+    }
+
+    if (command === 'workload-forecast-summary') {
+      const months = parseInt(process.argv[3]) || 3;
+
+      if (months < 1 || months > 12) {
+        console.error('Invalid months value. Must be between 1 and 12.');
+        process.exit(1);
+      }
+
+      console.log(`Generating ${months}-month forecast summary...\n`);
+
+      const summary = await reportingService.getWorkloadForecastSummary(months);
+
+      console.log('=== WORKLOAD FORECAST SUMMARY ===\n');
+      console.log(JSON.stringify(summary, null, 2));
+      process.exit(0);
+    }
+
+    if (command === 'historical-comparison') {
+      const now = new Date();
+      const month = parseInt(process.argv[3]) || (now.getMonth() + 1);
+      const year = parseInt(process.argv[4]) || now.getFullYear();
+      const yearsBack = parseInt(process.argv[5]) || 3;
+
+      console.log(`Comparing workload for ${year}-${String(month).padStart(2, '0')} with previous ${yearsBack} years...\n`);
+
+      const comparison = await reportingService.getHistoricalWorkloadComparison({
+        month,
+        year,
+        yearsBack
+      });
+
+      console.log('=== HISTORICAL WORKLOAD COMPARISON ===\n');
+      console.log(JSON.stringify(comparison, null, 2));
+      process.exit(0);
+    }
+
+    if (command === 'workload-analytics') {
+      const monthsBack = parseInt(process.argv[3]) || 6;
+      
+      const now = new Date();
+      const startDate = new Date(now.getFullYear(), now.getMonth() - monthsBack, 1);
+      const endDate = now;
+
+      console.log(`Analyzing workload from ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}...\n`);
+
+      const analytics = await reportingService.getWorkloadAnalytics({
+        startDate,
+        endDate
+      });
+
+      console.log('=== WORKLOAD ANALYTICS ===\n');
+      console.log(JSON.stringify(analytics, null, 2));
+      process.exit(0);
+    }
+
+    console.error('Unknown command.');
+    console.error('\nSupported commands:');
+    console.error('  get-project-info <PROJECT_KEY>');
+    console.error('  search-projects <QUERY>');
+    console.error('  workload-forecast [MONTHS]');
+    console.error('  workload-forecast-summary [MONTHS]');
+    console.error('  historical-comparison [MONTH] [YEAR] [YEARS_BACK]');
+    console.error('  workload-analytics [MONTHS_BACK]');
     process.exit(1);
   } catch (error) {
-    console.error('Reporting error:', error.message || error);
+    console.error('\n❌ Reporting error:', error.message || error);
+    if (error.stack) {
+      console.error('\nStack trace:');
+      console.error(error.stack);
+    }
     process.exit(1);
   }
 }
