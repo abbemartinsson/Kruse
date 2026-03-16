@@ -15,9 +15,12 @@ Skapa `.env`-fil i `src/config/` med:
 SUPABASE_URL=din-supabase-url
 SUPABASE_ANON_KEY=din-anon-key
 SUPABASE_SERVICE_ROLE_KEY=din-service-role-key
+
 JIRA_BASE_URL=din-jira-url
 JIRA_EMAIL=din-email
 JIRA_API_TOKEN=ditt-api-token
+
+TEMPO_BASE_UR=din-tempo-url
 TEMPO_API_TOKEN=ditt-tempo-token
 ```
 
