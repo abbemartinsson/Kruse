@@ -80,20 +80,7 @@ async function upsertWorklogs(worklogs) {
     return [];
   }
 
-  const existingTempoIds = await fetchExistingValuesByColumn(
-    TABLE,
-    'jira_tempo_id',
-    deduplicatedRows.map(row => String(row.jira_tempo_id))
-  );
-
-  const rowsToSync = deduplicatedRows.filter(
-    row => !existingTempoIds.has(String(row.jira_tempo_id))
-  );
-
-  const skippedExistingCount = deduplicatedRows.length - rowsToSync.length;
-  if (skippedExistingCount > 0) {
-    console.log(`    → Skipped ${skippedExistingCount} existing worklogs`);
-  }
+  const rowsToSync = deduplicatedRows;
 
   if (rowsToSync.length === 0) {
     return [];
