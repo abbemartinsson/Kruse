@@ -80,12 +80,18 @@ async function upsertWorklogs(worklogs) {
     return [];
   }
 
+  const rowsToSync = deduplicatedRows;
+
+  if (rowsToSync.length === 0) {
+    return [];
+  }
+
   const { data, error } = await supabase
     .from(TABLE)
-    .upsert(deduplicatedRows, { onConflict: 'jira_tempo_id' });
+    .upsert(rowsToSync, { onConflict: 'jira_tempo_id' });
 
   if (!error) {
-    return data || deduplicatedRows;
+    return data || rowsToSync;
   }
 
   // Fallback for environments where the composite unique constraint does not exist.
@@ -98,12 +104,12 @@ async function upsertWorklogs(worklogs) {
   }
 
   console.warn('    Missing unique constraint for upsert, using deduplicated insert fallback');
-  const existingTempoIds = await buildExistingTempoIdSet();
-  const rowsToInsert = deduplicatedRows.filter(row => {
-    if (existingTempoIds.has(row.jira_tempo_id)) {
+  const existingTempoIdsFallback = await buildExistingTempoIdSet();
+  const rowsToInsert = rowsToSync.filter(row => {
+    if (existingTempoIdsFallback.has(row.jira_tempo_id)) {
       return false;
     }
-    existingTempoIds.add(row.jira_tempo_id);
+    existingTempoIdsFallback.add(row.jira_tempo_id);
     return true;
   });
 
@@ -234,6 +240,36 @@ async function buildExistingTempoIdSet() {
   }
 
   return set;
+}
+
+async function fetchExistingValuesByColumn(table, column, values, options = {}) {
+  const uniqueValues = [...new Set((values || []).filter(v => v !== null && v !== undefined))];
+  if (uniqueValues.length === 0) {
+    return new Set();
+  }
+
+  const existing = new Set();
+  const batchSize = options.batchSize || 500;
+
+  for (let i = 0; i < uniqueValues.length; i += batchSize) {
+    const batch = uniqueValues.slice(i, i + batchSize);
+    const { data, error } = await supabase
+      .from(table)
+      .select(column)
+      .in(column, batch);
+
+    if (error) {
+      throw error;
+    }
+
+    for (const row of data || []) {
+      if (row[column] !== null && row[column] !== undefined) {
+        existing.add(String(row[column]));
+      }
+    }
+  }
+
+  return existing;
 }
 
 function buildWorklogKey(issueId, userId, startedAt) {

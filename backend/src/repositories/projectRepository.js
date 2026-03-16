@@ -17,16 +17,70 @@ async function upsertProjects(projects) {
     updated_at: now,
     // start_date, last_logged_issue calculated from worklogs
   }));
+
+  if (rows.length === 0) {
+    return [];
+  }
+
+  const existingProjectIds = await fetchExistingValuesByColumn(
+    TABLE,
+    'jira_project_id',
+    rows.map(row => String(row.jira_project_id))
+  );
+
+  const rowsToSync = rows.filter(
+    row => !existingProjectIds.has(String(row.jira_project_id))
+  );
+
+  const skippedExistingCount = rows.length - rowsToSync.length;
+  if (skippedExistingCount > 0) {
+    console.log(`    → Skipped ${skippedExistingCount} existing projects`);
+  }
+
+  if (rowsToSync.length === 0) {
+    return [];
+  }
+
   const { data, error } = await supabase
     .from(TABLE)
-    .upsert(rows, { onConflict: 'jira_project_id' });
+    .upsert(rowsToSync, { onConflict: 'jira_project_id' });
 
   if (error) {
     throw error;
   }
   // Supabase might return null data on upsert success,
   // so return the input rows instead
-  return data || rows;
+  return data || rowsToSync;
+}
+
+async function fetchExistingValuesByColumn(table, column, values) {
+  const uniqueValues = [...new Set((values || []).filter(v => v !== null && v !== undefined))];
+  if (uniqueValues.length === 0) {
+    return new Set();
+  }
+
+  const existing = new Set();
+  const batchSize = 500;
+
+  for (let i = 0; i < uniqueValues.length; i += batchSize) {
+    const batch = uniqueValues.slice(i, i + batchSize);
+    const { data, error } = await supabase
+      .from(table)
+      .select(column)
+      .in(column, batch);
+
+    if (error) {
+      throw error;
+    }
+
+    for (const row of data || []) {
+      if (row[column] !== null && row[column] !== undefined) {
+        existing.add(String(row[column]));
+      }
+    }
+  }
+
+  return existing;
 }
 
 async function updateProjectTimestamps() {

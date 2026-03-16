@@ -52,15 +52,58 @@ async function upsertIssues(issues) {
     return [];
   }
 
+  const existingIssueMap = await fetchExistingIssueStateMap(
+    rows.map(row => String(row.jira_issue_id))
+  );
+
+  const rowsToSync = [];
+  let statusChangedCount = 0;
+  let newIssueCount = 0;
+
+  for (const row of rows) {
+    const existing = existingIssueMap.get(String(row.jira_issue_id));
+    if (!existing) {
+      newIssueCount++;
+      rowsToSync.push(row);
+      continue;
+    }
+
+    if (existing.status !== row.status) {
+      statusChangedCount++;
+      rowsToSync.push({
+        ...row,
+        // Preserve original created_at for existing rows.
+        created_at: existing.created_at || row.created_at,
+      });
+    }
+  }
+
+  const skippedExistingCount = rows.length - rowsToSync.length;
+  if (skippedExistingCount > 0) {
+    console.log(`    → Skipped ${skippedExistingCount} unchanged existing issues`);
+  }
+
+  if (statusChangedCount > 0) {
+    console.log(`    → Synced ${statusChangedCount} issues with changed status`);
+  }
+
+  if (newIssueCount > 0) {
+    console.log(`    → Synced ${newIssueCount} new issues`);
+  }
+
+  if (rowsToSync.length === 0) {
+    return [];
+  }
+
   const { data, error } = await supabase
     .from(TABLE)
-    .upsert(rows, { onConflict: 'jira_issue_id' });
+    .upsert(rowsToSync, { onConflict: 'jira_issue_id' });
 
   if (error) {
     throw error;
   }
 
-  return data || rows;
+  return data || rowsToSync;
 }
 
 /**
@@ -98,6 +141,37 @@ async function buildUserLookupMap() {
   for (const user of data || []) {
     map.set(user.jira_account_id, user.id);
   }
+  return map;
+}
+
+async function fetchExistingIssueStateMap(issueIds) {
+  const uniqueIds = [...new Set((issueIds || []).filter(v => v !== null && v !== undefined))];
+  if (uniqueIds.length === 0) {
+    return new Map();
+  }
+
+  const map = new Map();
+  const batchSize = 500;
+
+  for (let i = 0; i < uniqueIds.length; i += batchSize) {
+    const batch = uniqueIds.slice(i, i + batchSize);
+    const { data, error } = await supabase
+      .from(TABLE)
+      .select('jira_issue_id, status, created_at')
+      .in('jira_issue_id', batch);
+
+    if (error) {
+      throw error;
+    }
+
+    for (const row of data || []) {
+      map.set(String(row.jira_issue_id), {
+        status: row.status,
+        created_at: row.created_at,
+      });
+    }
+  }
+
   return map;
 }
 

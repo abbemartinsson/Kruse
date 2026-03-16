@@ -17,17 +17,70 @@ async function upsertUsers(users) {
     updated_at: now,
     // capacity_hours_per_day and slack_account_id can be added later
   }));
+
+  if (rows.length === 0) {
+    return [];
+  }
+
+  const existingUserIds = await fetchExistingValuesByColumn(
+    TABLE,
+    'jira_account_id',
+    rows.map(row => String(row.jira_account_id))
+  );
+
+  const rowsToSync = rows.filter(
+    row => !existingUserIds.has(String(row.jira_account_id))
+  );
+
+  const skippedExistingCount = rows.length - rowsToSync.length;
+  if (skippedExistingCount > 0) {
+    console.log(`    → Skipped ${skippedExistingCount} existing users`);
+  }
+
+  if (rowsToSync.length === 0) {
+    return [];
+  }
   
   const { data, error } = await supabase
     .from(TABLE)
-    .upsert(rows, { onConflict: 'jira_account_id' });
+    .upsert(rowsToSync, { onConflict: 'jira_account_id' });
 
   if (error) {
     throw error;
   }
   // Supabase might return null data on upsert success,
   // so return the input rows instead
-  return data || rows;
+  return data || rowsToSync;
+}
+
+async function fetchExistingValuesByColumn(table, column, values) {
+  const uniqueValues = [...new Set((values || []).filter(v => v !== null && v !== undefined))];
+  if (uniqueValues.length === 0) {
+    return new Set();
+  }
+
+  const existing = new Set();
+  const batchSize = 500;
+
+  for (let i = 0; i < uniqueValues.length; i += batchSize) {
+    const batch = uniqueValues.slice(i, i + batchSize);
+    const { data, error } = await supabase
+      .from(table)
+      .select(column)
+      .in(column, batch);
+
+    if (error) {
+      throw error;
+    }
+
+    for (const row of data || []) {
+      if (row[column] !== null && row[column] !== undefined) {
+        existing.add(String(row[column]));
+      }
+    }
+  }
+
+  return existing;
 }
 
 module.exports = {
